@@ -268,14 +268,7 @@
                     <h1 class="mt-2 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
                         Jasa Pembuatan Website & Aplikasi
                     </h1>
-                    <p class="mt-3 max-w-2xl leading-relaxed text-slate-600">
-                        Aku fokus <span class="font-medium text-slate-900">bikin websitenya</span> — dari landing page, company profile, toko online, sistem manajemen, kasir, sampai aplikasi. Bukan jasa marketing/SEO/iklan. Klik kartu untuk lihat detail & harga.
-                    </p>
                 </div>
-                <a href="{{ route('konsultasi') }}"
-                   class="shrink-0 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:bg-indigo-500">
-                    Konsultasi
-                </a>
             </div>
 
             {{-- Semua paket sudah termasuk --}}
