@@ -6,6 +6,7 @@ error_reporting(E_ALL);
 $logFile = '/tmp/laravel-error.log';
 ini_set('error_log', $logFile);
 
+// Create required directories
 $dirs = [
     '/tmp/storage',
     '/tmp/storage/framework',
@@ -33,66 +34,49 @@ foreach ($dirs as $dir) {
 try {
     $basePath = __DIR__ . '/../';
     
-    echo "Step 1: Base path OK\n";
-    
+    // Load vendor
     $autoloadPath = $basePath . 'vendor/autoload.php';
     if (!file_exists($autoloadPath)) {
-        die("ERROR: vendor/autoload.php not found");
+        throw new Exception("vendor/autoload.php not found");
     }
-    echo "Step 2: Vendor found\n";
-    
     require $autoloadPath;
-    echo "Step 3: Vendor loaded\n";
     
-    $publicIndex = $basePath . 'public/index.php';
-    if (!file_exists($publicIndex)) {
-        die("ERROR: public/index.php not found");
-    }
-    echo "Step 4: Public index found\n";
-    
-    echo "Step 4.5: Directories created\n";
-    
+    // Load .env
     $envPath = $basePath . '.env';
     if (file_exists($envPath)) {
-        echo "Step 4.7: .env found\n";
-        
-        // Read .env file raw
-        $envContent = file_get_contents($envPath);
-        echo "Step 4.7a: .env file size: " . strlen($envContent) . " bytes\n";
-        echo "Step 4.7b: First 200 chars: " . substr($envContent, 0, 200) . "\n";
-        
-        // Try loading
-        try {
-            $dotenv = Dotenv\Dotenv::createImmutable($basePath);
-            $dotenv->load();
-            echo "Step 4.8: dotenv->load() completed\n";
-        } catch (Exception $e) {
-            echo "Step 4.8: dotenv->load() FAILED: " . $e->getMessage() . "\n";
-            throw $e;
-        }
-        
-        // Check multiple ways to get APP_ENV
-        $appEnvGet = getenv('APP_ENV');
-        $appEnvServer = $_SERVER['APP_ENV'] ?? 'NOT_IN_SERVER';
-        $appEnvEnv = $_ENV['APP_ENV'] ?? 'NOT_IN_ENV';
-        
-        echo "Step 4.9: getenv('APP_ENV') = [$appEnvGet]\n";
-        echo "Step 4.9b: \$_SERVER['APP_ENV'] = [$appEnvServer]\n";
-        echo "Step 4.9c: \$_ENV['APP_ENV'] = [$appEnvEnv]\n";
-        
-    } else {
-        echo "Step 4.7: .env NOT found\n";
+        $dotenv = Dotenv\Dotenv::createImmutable($basePath);
+        $dotenv->load();
     }
     
-    echo "Step 5: About to require public/index.php...\n";
-    require $publicIndex;
-    echo "Step 6: Laravel loaded\n";
+    // Clear stale cache
+    $cacheFiles = [
+        $basePath . 'bootstrap/cache/config.php',
+        $basePath . 'bootstrap/cache/routes.php',
+        $basePath . 'bootstrap/cache/services.php',
+    ];
+    foreach ($cacheFiles as $file) {
+        if (file_exists($file)) {
+            @unlink($file);
+        }
+    }
+    
+    // Boot Laravel
+    $publicIndexPath = $basePath . 'public/index.php';
+    if (!file_exists($publicIndexPath)) {
+        throw new Exception("public/index.php not found");
+    }
+    require $publicIndexPath;
     
 } catch (Throwable $e) {
+    error_log("ERROR: " . $e->getMessage());
+    error_log("File: " . $e->getFile() . ":" . $e->getLine());
+    error_log("Trace: " . $e->getTraceAsString());
+    
     http_response_code(500);
-    header('Content-Type: text/plain');
-    echo "ERROR: " . $e->getMessage() . "\n";
-    echo "File: " . $e->getFile() . ":" . $e->getLine() . "\n";
-    echo $e->getTraceAsString();
+    header('Content-Type: application/json');
+    echo json_encode([
+        'error' => $e->getMessage(),
+        'file' => basename($e->getFile()) . ':' . $e->getLine(),
+    ], JSON_PRETTY_PRINT);
     exit(1);
 }
