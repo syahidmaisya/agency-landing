@@ -6,6 +6,8 @@ error_reporting(E_ALL);
 $logFile = '/tmp/laravel-error.log';
 ini_set('error_log', $logFile);
 
+$basePath = __DIR__ . '/../';
+
 // Create required directories
 $dirs = [
     '/tmp/storage',
@@ -32,8 +34,6 @@ foreach ($dirs as $dir) {
 }
 
 try {
-    $basePath = __DIR__ . '/../';
-    
     // Load vendor
     $autoloadPath = $basePath . 'vendor/autoload.php';
     if (!file_exists($autoloadPath)) {
@@ -48,14 +48,31 @@ try {
         $dotenv->load();
     }
     
-    // Clear stale cache
-    $cacheFiles = [
-        $basePath . 'bootstrap/cache/config.php',
-        $basePath . 'bootstrap/cache/routes.php',
-        $basePath . 'bootstrap/cache/services.php',
-    ];
-    foreach ($cacheFiles as $file) {
-        if (file_exists($file)) {
+    // DELETE ENTIRE bootstrap/cache directory and recreate
+    $bootstrapCachePath = $basePath . 'bootstrap/cache';
+    if (is_dir($bootstrapCachePath)) {
+        $files = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($bootstrapCachePath, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        
+        foreach ($files as $fileinfo) {
+            if ($fileinfo->isFile()) {
+                @unlink($fileinfo->getRealPath());
+            }
+        }
+    }
+    
+    // Recreate bootstrap/cache
+    if (!is_dir($bootstrapCachePath)) {
+        @mkdir($bootstrapCachePath, 0777, true);
+    }
+    @chmod($bootstrapCachePath, 0777);
+    
+    // Also clear local storage bootstrap cache
+    $localBootstrapCache = $basePath . 'bootstrap/cache';
+    if (is_dir($localBootstrapCache)) {
+        foreach (glob($localBootstrapCache . '/*.php') as $file) {
             @unlink($file);
         }
     }
